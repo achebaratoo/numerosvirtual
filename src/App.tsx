@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Pricing from "./pages/Pricing";
 import Dashboard from "./pages/Dashboard";
 import GenerateNumber from "./pages/GenerateNumber";
 import Notifications from "./pages/Notifications";
