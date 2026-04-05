@@ -1,60 +1,59 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Bell, CheckCircle, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Users, Send, BarChart3, Bot, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ numbers: 0, sms: 0, verified: 0, pending: 0 });
-  const [recent, setRecent] = useState<any[]>([]);
+  const [stats, setStats] = useState({ leads: 0, messages: 0, automations: 0, funnels: 0 });
+  const [recentMessages, setRecentMessages] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data: nums } = await supabase
-        .from("generated_numbers")
-        .select("*")
+      const [
+        { count: leadCount },
+        { count: msgCount },
+        { count: autoCount },
+        { count: funnelCount },
+      ] = await Promise.all([
+        supabase.from("leads").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("messages").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("automations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("is_active", true),
+        supabase.from("funnels").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+      ]);
+      setStats({
+        leads: leadCount || 0,
+        messages: msgCount || 0,
+        automations: autoCount || 0,
+        funnels: funnelCount || 0,
+      });
+
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("*, leads(name, phone)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
-
-      const all = nums || [];
-      setRecent(all.slice(0, 3));
-      setStats({
-        numbers: all.length,
-        sms: all.filter((n: any) => n.code).length,
-        verified: all.filter((n: any) => n.code).length,
-        pending: all.filter((n: any) => !n.code && n.status === "active").length,
-      });
-
-      // get total counts
-      const { count: totalNums } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-      const { count: totalSms } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id).not("code", "is", null);
-      const { count: totalPending } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id).is("code", null).eq("status", "active");
-      setStats({
-        numbers: totalNums || 0,
-        sms: totalSms || 0,
-        verified: totalSms || 0,
-        pending: totalPending || 0,
-      });
+      setRecentMessages(msgs || []);
     };
     load();
   }, [user]);
 
   const statCards = [
-    { icon: Smartphone, label: "Números Gerados", value: stats.numbers.toString(), color: "text-primary" },
-    { icon: Bell, label: "SMS Recebidos", value: stats.sms.toString(), color: "text-accent" },
-    { icon: CheckCircle, label: "Verificações", value: stats.verified.toString(), color: "text-accent" },
-    { icon: Clock, label: "Pendentes", value: stats.pending.toString(), color: "text-muted-foreground" },
+    { icon: Users, label: "Total de Leads", value: stats.leads.toString(), color: "text-primary" },
+    { icon: Send, label: "Mensagens Enviadas", value: stats.messages.toString(), color: "text-accent" },
+    { icon: Bot, label: "Automações Ativas", value: stats.automations.toString(), color: "text-primary" },
+    { icon: BarChart3, label: "Funis Ativos", value: stats.funnels.toString(), color: "text-accent" },
   ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Bem-vindo de volta! 👋</h2>
+          <h2 className="text-2xl font-bold text-foreground">Bem-vindo ao ZapFlow! 👋</h2>
           <p className="text-muted-foreground">Aqui está um resumo da sua atividade.</p>
         </div>
 
@@ -77,27 +76,25 @@ const Dashboard = () => {
         </div>
 
         <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Atividade Recente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recent.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nenhuma atividade ainda. Gere seu primeiro número!</p>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Mensagens Recentes</h3>
+            {recentMessages.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhuma mensagem ainda. Envie sua primeira mensagem!</p>
             ) : (
               <div className="space-y-3">
-                {recent.map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                {recentMessages.map((msg: any) => (
+                  <div key={msg.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                     <div className="flex items-center gap-3">
-                      <Smartphone className="w-5 h-5 text-primary" />
+                      <MessageSquare className={`w-5 h-5 ${msg.direction === "outgoing" ? "text-primary" : "text-accent"}`} />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{item.phone_number}</p>
-                        <p className={`text-xs ${item.code ? "text-accent" : "text-muted-foreground"}`}>
-                          {item.code ? "Código recebido" : "Aguardando SMS"}
+                        <p className="text-sm font-medium text-foreground">
+                          {msg.leads?.name || "Contato desconhecido"}
                         </p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">{msg.content}</p>
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleTimeString("pt-BR")}
+                      {new Date(msg.created_at).toLocaleTimeString("pt-BR")}
                     </span>
                   </div>
                 ))}

@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Phone, LayoutDashboard, Smartphone, Bell, Settings, LogOut, Menu, X, PanelLeftClose, PanelLeft } from "lucide-react";
+import { MessageSquare, LayoutDashboard, Wifi, Bot, Users, Send, BarChart3, Bell, Settings, LogOut, Menu, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,7 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Smartphone, label: "Gerar Número", path: "/dashboard/generate" },
+  { icon: Wifi, label: "WhatsApp", path: "/dashboard/whatsapp" },
+  { icon: Bot, label: "Automações", path: "/dashboard/automations" },
+  { icon: Users, label: "Leads", path: "/dashboard/leads" },
+  { icon: Send, label: "Mensagens", path: "/dashboard/messages" },
+  { icon: BarChart3, label: "Funis", path: "/dashboard/funnels" },
   { icon: Bell, label: "Notificações", path: "/dashboard/notifications" },
   { icon: Settings, label: "Configurações", path: "/dashboard/settings" },
 ];
@@ -29,12 +33,10 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-foreground/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed lg:static inset-y-0 left-0 z-50 bg-sidebar flex flex-col transition-all duration-300 lg:translate-x-0",
@@ -44,11 +46,11 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       >
         <div className={cn("flex items-center gap-2 h-16 border-b border-sidebar-border", sidebarCollapsed ? "px-3 justify-center" : "px-6")}>
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
-            <Phone className="w-4 h-4 text-primary-foreground" />
+            <MessageSquare className="w-4 h-4 text-primary-foreground" />
           </div>
-          {!sidebarCollapsed && <span className="text-lg font-bold text-sidebar-primary-foreground">NumeroVirtual</span>}
+          {!sidebarCollapsed && <span className="text-lg font-bold text-sidebar-primary-foreground">ZapFlow</span>}
         </div>
-        <nav className="flex-1 py-4 px-2 space-y-1">
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const active = location.pathname === item.path;
             return (
@@ -70,7 +72,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
             );
           })}
         </nav>
-        {/* Collapse toggle (desktop) */}
         <div className="hidden lg:block p-2 border-t border-sidebar-border">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -96,7 +97,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4">
           <div className="flex items-center gap-4">

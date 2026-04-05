@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Phone, ArrowLeft } from "lucide-react";
+import { Check, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const plans = [
@@ -9,46 +9,49 @@ const plans = [
     name: "Gratuito",
     price: "R$ 0",
     period: "/mês",
-    description: "Ideal para uso básico e testes",
+    description: "Ideal para testar a plataforma",
     features: [
-      "3 números por dia",
-      "Códigos SMS básicos",
-      "Números válidos por 10 min",
-      "Suporte por email",
+      "1 conexão WhatsApp",
+      "100 mensagens/mês",
+      "50 leads",
+      "2 automações",
+      "1 funil de vendas",
     ],
     cta: "Começar Grátis",
     variant: "outline" as const,
     popular: false,
   },
   {
-    name: "Premium",
-    price: "R$ 29,90",
+    name: "Pro",
+    price: "R$ 97",
     period: "/mês",
-    description: "Para quem precisa de mais números e recursos",
+    description: "Para profissionais e pequenos negócios",
     features: [
-      "Números ilimitados",
-      "Códigos SMS prioritários",
-      "Números válidos por 30 min",
-      "Suporte prioritário 24/7",
-      "Histórico completo",
-      "API de integração",
+      "3 conexões WhatsApp",
+      "Mensagens ilimitadas",
+      "Leads ilimitados",
+      "Automações ilimitadas",
+      "Funis ilimitados",
+      "Suporte prioritário",
+      "Variáveis personalizadas",
     ],
-    cta: "Assinar Premium",
+    cta: "Assinar Pro",
     variant: "hero" as const,
     popular: true,
   },
   {
-    name: "Empresarial",
-    price: "R$ 99,90",
+    name: "Enterprise",
+    price: "R$ 297",
     period: "/mês",
-    description: "Para equipes e empresas com alta demanda",
+    description: "Para equipes e agências",
     features: [
-      "Tudo do Premium",
-      "Múltiplos usuários",
-      "Dashboard avançado",
-      "Webhooks e API completa",
+      "Tudo do Pro",
+      "Conexões ilimitadas",
+      "API completa",
+      "Webhooks",
+      "Multi-usuários",
+      "Gerente de conta",
       "SLA garantido",
-      "Gerente de conta dedicado",
     ],
     cta: "Falar com Vendas",
     variant: "outline" as const,
@@ -65,9 +68,9 @@ const Pricing = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Phone className="w-4 h-4 text-primary-foreground" />
+              <MessageSquare className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-foreground">NumeroVirtual</span>
+            <span className="text-lg font-bold text-foreground">ZapFlow</span>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/login")}>Entrar</Button>
@@ -81,7 +84,7 @@ const Pricing = () => {
           <div className="text-center mb-12">
             <h1 className="text-4xl font-extrabold text-foreground mb-4">Planos e Preços</h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Escolha o plano ideal para suas necessidades. Comece grátis e faça upgrade quando quiser.
+              Escolha o plano ideal para escalar suas vendas pelo WhatsApp.
             </p>
           </div>
 
@@ -110,16 +113,12 @@ const Pricing = () => {
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm text-foreground">
-                        <Check className="w-4 h-4 text-accent flex-shrink-0" />
+                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    variant={plan.variant}
-                    className="w-full"
-                    onClick={() => navigate("/register")}
-                  >
+                  <Button variant={plan.variant} className="w-full" onClick={() => navigate("/register")}>
                     {plan.cta}
                   </Button>
                 </CardContent>
@@ -131,7 +130,7 @@ const Pricing = () => {
 
       <footer className="py-8 border-t border-border bg-background">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          © 2026 NumeroVirtual. Todos os direitos reservados.
+          © 2026 ZapFlow. Todos os direitos reservados.
         </div>
       </footer>
     </div>

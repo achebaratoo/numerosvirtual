@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Phone, Shield, Zap, Bell, ChevronRight, Smartphone } from "lucide-react";
+import { MessageSquare, Shield, Zap, Users, ChevronRight, Bot, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -12,9 +12,9 @@ const Index = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Phone className="w-4 h-4 text-primary-foreground" />
+              <MessageSquare className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-foreground">NumeroVirtual</span>
+            <span className="text-lg font-bold text-foreground">ZapFlow</span>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/pricing")}>
@@ -40,18 +40,19 @@ const Index = () => {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 mb-6">
               <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary font-medium">Receba códigos de verificação instantaneamente</span>
+              <span className="text-sm text-primary font-medium">Automação de WhatsApp inteligente</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight" style={{ color: "hsl(0 0% 100%)" }}>
-              Crie contas sem precisar de um{" "}
-              <span className="text-gradient">número extra</span>
+              Automatize seu{" "}
+              <span className="text-gradient">WhatsApp</span>{" "}
+              e venda mais
             </h1>
             <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto" style={{ color: "hsl(220 10% 70%)" }}>
-              Gere números virtuais para receber códigos de verificação SMS do Google e outros serviços. Rápido, seguro e sem complicação.
+              Conecte seu WhatsApp, crie automações, gerencie leads e construa funis de vendas. Tudo em uma plataforma simples e poderosa.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="hero" size="lg" className="text-base px-8" onClick={() => navigate("/register")}>
-                Gerar Número Agora <ChevronRight className="w-5 h-5" />
+                Começar Grátis <ChevronRight className="w-5 h-5" />
               </Button>
               <Button variant="hero-outline" size="lg" className="text-base px-8" onClick={() => navigate("/login")}>
                 Já tenho conta
@@ -64,26 +65,26 @@ const Index = () => {
       {/* Features */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Como Funciona</h2>
+          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Tudo que você precisa</h2>
           <p className="text-center text-muted-foreground mb-12 max-w-lg mx-auto">
-            Em 3 passos simples, receba qualquer código de verificação
+            Ferramentas completas para automatizar seu atendimento e aumentar suas vendas
           </p>
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {[
               {
-                icon: Smartphone,
-                title: "Gere um Número",
-                desc: "Clique para gerar um número de celular virtual brasileiro pronto para uso.",
+                icon: Bot,
+                title: "Automações",
+                desc: "Crie fluxos automáticos de mensagens com gatilhos por palavra-chave, novo lead ou ações personalizadas.",
               },
               {
-                icon: Bell,
-                title: "Receba o Código",
-                desc: "Use o número para verificação e receba o SMS com o código em tempo real.",
+                icon: Users,
+                title: "CRM de Leads",
+                desc: "Gerencie todos os seus contatos em um só lugar. Organize por status, tags e acompanhe cada conversa.",
               },
               {
-                icon: Shield,
-                title: "Seguro e Privado",
-                desc: "Seus dados ficam protegidos. Sem vínculo com seu número pessoal.",
+                icon: BarChart3,
+                title: "Funis de Vendas",
+                desc: "Monte funis visuais para acompanhar seus leads da captação até a conversão.",
               },
             ].map((f, i) => (
               <div
@@ -104,9 +105,9 @@ const Index = () => {
       {/* CTA */}
       <section className="py-16 gradient-primary">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-primary-foreground">Pronto para começar?</h2>
+          <h2 className="text-3xl font-bold mb-4 text-primary-foreground">Pronto para automatizar?</h2>
           <p className="text-primary-foreground/80 mb-8 max-w-md mx-auto">
-            Crie sua conta gratuitamente e gere seu primeiro número virtual agora mesmo.
+            Crie sua conta gratuitamente e conecte seu WhatsApp em minutos.
           </p>
           <Button
             size="lg"
@@ -121,7 +122,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 border-t border-border bg-background">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          © 2026 NumeroVirtual. Todos os direitos reservados.
+          © 2026 ZapFlow. Todos os direitos reservados.
         </div>
       </footer>
     </div>
