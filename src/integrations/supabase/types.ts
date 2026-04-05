@@ -14,6 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
+      automations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          steps: Json
+          trigger_type: string
+          trigger_value: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          steps?: Json
+          trigger_type?: string
+          trigger_value?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          steps?: Json
+          trigger_type?: string
+          trigger_value?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      funnel_leads: {
+        Row: {
+          created_at: string
+          funnel_id: string
+          id: string
+          lead_id: string
+          stage_index: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          funnel_id: string
+          id?: string
+          lead_id: string
+          stage_index?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          lead_id?: string
+          stage_index?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_leads_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnels: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          stages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          stages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          stages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_numbers: {
         Row: {
           code: string | null
@@ -43,6 +154,93 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          status: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          automation_id: string | null
+          content: string
+          created_at: string
+          direction: string
+          id: string
+          lead_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          automation_id?: string | null
+          content: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          automation_id?: string | null
+          content?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -95,6 +293,39 @@ export type Database = {
           id?: string
           name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_sessions: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          id: string
+          phone_number: string | null
+          session_data: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          phone_number?: string | null
+          session_data?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          phone_number?: string | null
+          session_data?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

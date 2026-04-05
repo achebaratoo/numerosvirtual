@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, ArrowLeft } from "lucide-react";
+import { MessageSquare, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,10 +37,10 @@ const Login = () => {
       <Card className="w-full max-w-md relative z-10 shadow-glow">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
-            <Phone className="w-6 h-6 text-primary-foreground" />
+            <MessageSquare className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Entrar</CardTitle>
-          <CardDescription>Acesse sua conta NumeroVirtual</CardDescription>
+          <CardDescription>Acesse sua conta ZapFlow</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
