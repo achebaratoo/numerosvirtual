@@ -40,7 +40,7 @@ const Login = () => {
             <MessageSquare className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Entrar</CardTitle>
-          <CardDescription>Acesse sua conta NumeroVirtual</CardDescription>
+          <CardDescription>Acesse sua conta ZapFlow</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">

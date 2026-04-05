@@ -47,7 +47,7 @@ const Register = () => {
             <MessageSquare className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
-          <CardDescription>Comece a gerar números virtuais agora</CardDescription>
+          <CardDescription>Comece a automatizar seu WhatsApp agora</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
