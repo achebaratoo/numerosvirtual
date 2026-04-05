@@ -6,18 +6,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Phone, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login
-    toast({ title: "Login realizado!", description: "Redirecionando para o painel..." });
-    setTimeout(() => navigate("/dashboard"), 500);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Login realizado!", description: "Redirecionando para o painel..." });
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -44,8 +52,8 @@ const Login = () => {
               <Label htmlFor="password">Senha</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" variant="hero" className="w-full">
-              Entrar
+            <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
