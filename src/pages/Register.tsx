@@ -44,7 +44,7 @@ const Register = () => {
       <Card className="w-full max-w-md relative z-10 shadow-glow">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
-            <Phone className="w-6 h-6 text-primary-foreground" />
+            <MessageSquare className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
           <CardDescription>Comece a gerar números virtuais agora</CardDescription>
