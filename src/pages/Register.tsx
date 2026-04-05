@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Phone, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,11 +14,25 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Conta criada!", description: "Bem-vindo ao NumeroVirtual!" });
-    setTimeout(() => navigate("/dashboard"), 500);
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Erro ao criar conta", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Conta criada!", description: "Verifique seu email para confirmar o cadastro." });
+    }
   };
 
   return (
@@ -48,8 +63,8 @@ const Register = () => {
               <Label htmlFor="password">Senha</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" variant="hero" className="w-full">
-              Criar Conta
+            <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+              {loading ? "Criando..." : "Criar Conta"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">

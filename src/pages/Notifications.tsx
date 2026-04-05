@@ -1,14 +1,17 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bell, CheckCircle, AlertCircle, Info, RefreshCw, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
-const notifications = [
-  { icon: CheckCircle, title: "Código recebido", desc: "SMS com código 482910 recebido no número (11) 98765-4321", time: "2 min atrás", type: "success" },
-  { icon: AlertCircle, title: "Número expirado", desc: "O número (21) 91234-5678 expirou após 10 minutos", time: "15 min atrás", type: "warning" },
-  { icon: CheckCircle, title: "Código recebido", desc: "SMS com código 173920 recebido no número (31) 99876-5432", time: "30 min atrás", type: "success" },
-  { icon: Info, title: "Dica", desc: "Você pode gerar até 5 números por hora no plano gratuito", time: "1h atrás", type: "info" },
-  { icon: CheckCircle, title: "Conta criada", desc: "Bem-vindo ao NumeroVirtual! Comece gerando seu primeiro número.", time: "2h atrás", type: "success" },
-];
+const iconMap: Record<string, any> = {
+  success: CheckCircle,
+  warning: AlertCircle,
+  info: Info,
+};
 
 const typeColors: Record<string, string> = {
   success: "text-accent",
@@ -17,31 +20,93 @@ const typeColors: Record<string, string> = {
 };
 
 const Notifications = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadNotifications = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setNotifications(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    toast({ title: "Notificação excluída" });
+  };
+
+  const timeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "agora";
+    if (mins < 60) return `${mins} min atrás`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h atrás`;
+    return `${Math.floor(hrs / 24)}d atrás`;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-2xl mx-auto">
-        <div className="flex items-center gap-3">
-          <Bell className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">Notificações</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Bell className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">Notificações</h2>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadNotifications} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
         </div>
-        <div className="space-y-3">
-          {notifications.map((n, i) => (
-            <Card key={i} className="shadow-card hover:shadow-glow transition-shadow animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-              <CardContent className="pt-4">
-                <div className="flex gap-3">
-                  <div className={`mt-0.5 ${typeColors[n.type]}`}>
-                    <n.icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{n.title}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{n.desc}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{n.time}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
+        {notifications.length === 0 ? (
+          <Card className="shadow-card">
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              Nenhuma notificação ainda.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((n, i) => {
+              const Icon = iconMap[n.type] || Info;
+              return (
+                <Card key={n.id} className="shadow-card hover:shadow-glow transition-shadow animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                  <CardContent className="pt-4">
+                    <div className="flex gap-3">
+                      <div className={`mt-0.5 ${typeColors[n.type] || "text-primary"}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{n.title}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{n.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(n.id)}
+                        className="text-destructive hover:text-destructive/80 transition-colors p-1"
+                        title="Excluir notificação"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -1,15 +1,55 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Smartphone, Bell, CheckCircle, Clock } from "lucide-react";
-
-const stats = [
-  { icon: Smartphone, label: "Números Gerados", value: "12", color: "text-primary" },
-  { icon: Bell, label: "SMS Recebidos", value: "8", color: "text-accent" },
-  { icon: CheckCircle, label: "Verificações", value: "6", color: "text-accent" },
-  { icon: Clock, label: "Pendentes", value: "2", color: "text-muted-foreground" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({ numbers: 0, sms: 0, verified: 0, pending: 0 });
+  const [recent, setRecent] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data: nums } = await supabase
+        .from("generated_numbers")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const all = nums || [];
+      setRecent(all.slice(0, 3));
+      setStats({
+        numbers: all.length,
+        sms: all.filter((n: any) => n.code).length,
+        verified: all.filter((n: any) => n.code).length,
+        pending: all.filter((n: any) => !n.code && n.status === "active").length,
+      });
+
+      // get total counts
+      const { count: totalNums } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+      const { count: totalSms } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id).not("code", "is", null);
+      const { count: totalPending } = await supabase.from("generated_numbers").select("*", { count: "exact", head: true }).eq("user_id", user.id).is("code", null).eq("status", "active");
+      setStats({
+        numbers: totalNums || 0,
+        sms: totalSms || 0,
+        verified: totalSms || 0,
+        pending: totalPending || 0,
+      });
+    };
+    load();
+  }, [user]);
+
+  const statCards = [
+    { icon: Smartphone, label: "Números Gerados", value: stats.numbers.toString(), color: "text-primary" },
+    { icon: Bell, label: "SMS Recebidos", value: stats.sms.toString(), color: "text-accent" },
+    { icon: CheckCircle, label: "Verificações", value: stats.verified.toString(), color: "text-accent" },
+    { icon: Clock, label: "Pendentes", value: stats.pending.toString(), color: "text-muted-foreground" },
+  ];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -19,7 +59,7 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((s, i) => (
+          {statCards.map((s, i) => (
             <Card key={i} className="shadow-card hover:shadow-glow transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">
@@ -41,24 +81,28 @@ const Dashboard = () => {
             <CardTitle className="text-lg">Atividade Recente</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[
-                { num: "(11) 98765-4321", status: "Código recebido", time: "2 min atrás", ok: true },
-                { num: "(21) 91234-5678", status: "Aguardando SMS", time: "5 min atrás", ok: false },
-                { num: "(31) 99876-5432", status: "Código recebido", time: "15 min atrás", ok: true },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                  <div className="flex items-center gap-3">
-                    <Smartphone className="w-5 h-5 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.num}</p>
-                      <p className={`text-xs ${item.ok ? "text-accent" : "text-muted-foreground"}`}>{item.status}</p>
+            {recent.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhuma atividade ainda. Gere seu primeiro número!</p>
+            ) : (
+              <div className="space-y-3">
+                {recent.map((item: any) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{item.phone_number}</p>
+                        <p className={`text-xs ${item.code ? "text-accent" : "text-muted-foreground"}`}>
+                          {item.code ? "Código recebido" : "Aguardando SMS"}
+                        </p>
+                      </div>
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(item.created_at).toLocaleTimeString("pt-BR")}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{item.time}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
