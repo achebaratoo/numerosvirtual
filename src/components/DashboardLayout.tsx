@@ -1,9 +1,11 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { MessageSquare, LayoutDashboard, Wifi, Bot, Users, Send, BarChart3, Bell, Settings, LogOut, Menu, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -20,8 +22,46 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut, user } = useAuth();
+  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Initial unread count
+    const loadUnread = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      setUnreadCount(count || 0);
+    };
+    loadUnread();
+
+    // Realtime subscription on notifications inserts
+    const channel = supabase
+      .channel(`notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const n = payload.new as { title: string; description: string; type: string };
+          toast({
+            title: `🔔 ${n.title}`,
+            description: n.description,
+          });
+          setUnreadCount((c) => c + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -53,13 +93,18 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const active = location.pathname === item.path;
+            const isNotif = item.path === "/dashboard/notifications";
             return (
               <button
                 key={item.path}
-                onClick={() => { navigate(item.path); setSidebarOpen(false); }}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                  if (isNotif) setUnreadCount(0);
+                }}
                 title={sidebarCollapsed ? item.label : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "w-full flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative",
                   sidebarCollapsed ? "justify-center px-2" : "px-3",
                   active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -67,7 +112,15 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 )}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
-                {!sidebarCollapsed && item.label}
+                {!sidebarCollapsed && <span className="flex-1 text-left">{item.label}</span>}
+                {isNotif && unreadCount > 0 && (
+                  <span className={cn(
+                    "bg-destructive text-destructive-foreground text-xs font-bold rounded-full min-w-5 h-5 flex items-center justify-center px-1.5",
+                    sidebarCollapsed && "absolute top-1 right-1 min-w-4 h-4 text-[10px]"
+                  )}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
             );
           })}
