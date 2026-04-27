@@ -97,7 +97,7 @@ const Funnels = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Funis de Vendas</h2>
             <p className="text-muted-foreground">Acompanhe seus leads da captação à conversão</p>
@@ -110,12 +110,45 @@ const Funnels = () => {
               <DialogHeader><DialogTitle>Novo Funil</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <div><Label>Nome do funil</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Funil de vendas principal" /></div>
-                <p className="text-xs text-muted-foreground">Etapas padrão: Lead entrou → Mensagem enviada → Conversão</p>
+                <p className="text-xs text-muted-foreground">Etapas padrão criadas: <strong>Lead entrou → Mensagem enviada → Conversão</strong></p>
                 <Button variant="hero" className="w-full" onClick={handleCreate} disabled={!name.trim()}>Criar Funil</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Step-by-step guide */}
+        <Card className="shadow-card border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" /> Como usar os Funis — Passo a passo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+              <div className="p-3 rounded-lg bg-card border border-border">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center mb-2">1</div>
+                <p className="font-medium text-foreground mb-1">Crie um funil</p>
+                <p className="text-xs text-muted-foreground">Clique em "Criar Funil" e dê um nome (ex: "Vendas Curso").</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center mb-2">2</div>
+                <p className="font-medium text-foreground mb-1">Cadastre leads</p>
+                <p className="text-xs text-muted-foreground">Vá em <strong>Leads</strong> e adicione contatos antes (ou ao mesmo tempo).</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center mb-2">3</div>
+                <p className="font-medium text-foreground mb-1">Adicione ao funil</p>
+                <p className="text-xs text-muted-foreground">Clique em "+ Lead" no funil e escolha quem entra na primeira etapa.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border">
+                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center mb-2">4</div>
+                <p className="font-medium text-foreground mb-1">Avance etapas</p>
+                <p className="text-xs text-muted-foreground">Use "Avançar →" para mover o lead até a <strong>Conversão</strong>.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {funnels.length === 0 ? (
           <Card className="shadow-card">
