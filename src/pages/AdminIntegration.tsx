@@ -16,6 +16,7 @@ const AdminIntegration = () => {
   const [savedUrl, setSavedUrl] = useState("");
   const [savedToken, setSavedToken] = useState("");
   const [status, setStatus] = useState<"unknown" | "online" | "offline">("unknown");
+  const [serverInfo, setServerInfo] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -37,12 +38,19 @@ const AdminIntegration = () => {
   const testConnection = useCallback(async (url: string, token: string) => {
     if (!url) return;
     setTesting(true);
+    setServerInfo(null);
     try {
       const cleanUrl = url.replace(/\/$/, "");
-      const res = await fetch(`${cleanUrl}/health`, {
-        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+      const res = await fetch(`${cleanUrl}/`, {
+        headers: token ? { "apikey": token } : {},
       });
-      setStatus(res.ok ? "online" : "offline");
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        setServerInfo(json);
+        setStatus("online");
+      } else {
+        setStatus("offline");
+      }
     } catch {
       setStatus("offline");
     }
@@ -55,17 +63,27 @@ const AdminIntegration = () => {
 
   const save = async () => {
     if (!serverUrl.trim()) {
-      toast({ title: "URL obrigatória", description: "Informe a URL do servidor Baileys", variant: "destructive" });
+      toast({ title: "URL obrigatória", description: "Informe a URL da Evolution API", variant: "destructive" });
       return;
     }
     setSaving(true);
-    const { error } = await supabase
+    // upsert: try update first, if no row exists, insert
+    const { data: existing } = await supabase
       .from("system_settings")
-      .update({
-        value: { url: serverUrl.trim(), token: serverToken.trim() },
-        updated_at: new Date().toISOString(),
-      })
-      .eq("key", "whatsapp_server");
+      .select("id")
+      .eq("key", "whatsapp_server")
+      .maybeSingle();
+
+    const payload = {
+      key: "whatsapp_server",
+      value: { url: serverUrl.trim(), token: serverToken.trim(), provider: "evolution" },
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = existing
+      ? await supabase.from("system_settings").update(payload).eq("key", "whatsapp_server")
+      : await supabase.from("system_settings").insert(payload);
+
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -80,8 +98,8 @@ const AdminIntegration = () => {
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Integração de Servidor</h2>
-          <p className="text-muted-foreground">Configure o servidor Baileys global usado por todos os usuários</p>
+          <h2 className="text-2xl font-bold text-foreground">Integração de Servidor (Evolution API)</h2>
+          <p className="text-muted-foreground">Configure a Evolution API global usada por todos os usuários</p>
         </div>
 
         {/* Flow guide */}
@@ -92,10 +110,10 @@ const AdminIntegration = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex gap-3"><span className="font-bold text-primary">1.</span><p><strong>Você (admin)</strong> hospeda o servidor Baileys (Railway, VPS, Render…) e cola a URL aqui.</p></div>
-            <div className="flex gap-3"><span className="font-bold text-primary">2.</span><p>O sistema testa a conexão automaticamente — se ficar verde está OK.</p></div>
-            <div className="flex gap-3"><span className="font-bold text-primary">3.</span><p><strong>Os usuários</strong> entram em "WhatsApp" e veem apenas o QR Code (sem precisar configurar nada).</p></div>
-            <div className="flex gap-3"><span className="font-bold text-primary">4.</span><p>Cada usuário escaneia com o WhatsApp dele e fica conectado em sessão isolada.</p></div>
+            <div className="flex gap-3"><span className="font-bold text-primary">1.</span><p><strong>Você (admin)</strong> hospeda a Evolution API (Docker no Railway, VPS, Render…) e cola a URL e a API Key aqui.</p></div>
+            <div className="flex gap-3"><span className="font-bold text-primary">2.</span><p>O sistema testa a conexão chamando <code className="bg-background px-1 rounded">GET /</code> — se ficar verde está OK.</p></div>
+            <div className="flex gap-3"><span className="font-bold text-primary">3.</span><p><strong>Os usuários</strong> entram em "WhatsApp" e o sistema cria uma instância única para cada um (instanceName = user_id).</p></div>
+            <div className="flex gap-3"><span className="font-bold text-primary">4.</span><p>Cada usuário escaneia o QR Code com o WhatsApp dele e fica conectado em sessão isolada.</p></div>
           </CardContent>
         </Card>
 
@@ -115,22 +133,22 @@ const AdminIntegration = () => {
               <Label htmlFor="url">URL do Servidor / API *</Label>
               <Input
                 id="url"
-                placeholder="https://meu-baileys.up.railway.app"
+                placeholder="https://sua-evolution.up.railway.app"
                 value={serverUrl}
                 onChange={e => setServerUrl(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground mt-1">URL pública do servidor Baileys que você hospedou</p>
+              <p className="text-xs text-muted-foreground mt-1">URL pública da sua Evolution API (sem barra no final)</p>
             </div>
             <div>
-              <Label htmlFor="token">Token de Autenticação (opcional)</Label>
+              <Label htmlFor="token">API Key (header <code>apikey</code>)</Label>
               <Input
                 id="token"
                 type="password"
-                placeholder="Bearer token (se seu servidor exigir)"
+                placeholder="Sua AUTHENTICATION_API_KEY global"
                 value={serverToken}
                 onChange={e => setServerToken(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground mt-1">Deixe em branco se o servidor não exigir autenticação</p>
+              <p className="text-xs text-muted-foreground mt-1">Definida na variável <code>AUTHENTICATION_API_KEY</code> da Evolution API</p>
             </div>
 
             <div className="flex gap-2">
@@ -142,9 +160,20 @@ const AdminIntegration = () => {
               </Button>
             </div>
 
-            <div className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg">
-              <p className="font-medium text-foreground mb-1">📦 Onde hospedar o servidor?</p>
-              <p>Use o código em <code className="bg-background px-1 rounded">baileys-server/</code> deste projeto. Hospede em Railway, Render, Fly.io ou VPS e cole a URL pública aqui.</p>
+            {serverInfo && (
+              <div className="text-xs bg-secondary/50 p-3 rounded-lg space-y-1">
+                <p className="font-medium text-foreground">✅ Resposta do servidor:</p>
+                <p>Versão: <code>{serverInfo.version || "?"}</code></p>
+                {serverInfo.message && <p>{serverInfo.message}</p>}
+              </div>
+            )}
+
+            <div className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-lg space-y-2">
+              <p className="font-medium text-foreground">📦 Como hospedar Evolution API rapidinho</p>
+              <p>1. Crie um projeto no <a href="https://railway.app" target="_blank" rel="noreferrer" className="text-primary underline">Railway</a> com a imagem Docker <code>atendai/evolution-api:latest</code></p>
+              <p>2. Defina a variável <code>AUTHENTICATION_API_KEY</code> com um token forte</p>
+              <p>3. Gere o domínio público e cole a URL acima junto com a API Key</p>
+              <p>📚 Docs: <a href="https://doc.evolution-api.com" target="_blank" rel="noreferrer" className="text-primary underline">doc.evolution-api.com</a></p>
             </div>
           </CardContent>
         </Card>
