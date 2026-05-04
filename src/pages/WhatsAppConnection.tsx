@@ -20,6 +20,7 @@ const WhatsAppConnection = () => {
 
   const isConfigured = !!serverConfig?.url;
   const isConnected = session?.status === "connected";
+  const instanceName = user?.id; // sessão isolada por usuário
 
   const loadAll = useCallback(async () => {
     if (!user) return;
@@ -34,68 +35,110 @@ const WhatsAppConnection = () => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  const callServer = useCallback(async (path: string, method: string = "GET", body?: any) => {
+  const evoFetch = useCallback(async (path: string, method: string = "GET", body?: any) => {
     if (!serverConfig?.url) throw new Error("Servidor não configurado");
     const cleanUrl = serverConfig.url.replace(/\/$/, "");
     const res = await fetch(`${cleanUrl}${path}`, {
       method,
       headers: {
         "Content-Type": "application/json",
-        ...(serverConfig.token ? { "Authorization": `Bearer ${serverConfig.token}` } : {}),
+        ...(serverConfig.token ? { "apikey": serverConfig.token } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    const text = await res.text();
+    let data: any = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+    if (!res.ok) {
+      const msg = data?.response?.message || data?.message || `HTTP ${res.status}`;
+      throw new Error(Array.isArray(msg) ? msg.join(", ") : String(msg));
+    }
+    return data;
   }, [serverConfig]);
 
   const checkStatus = useCallback(async () => {
-    if (!isConfigured || !user) return;
+    if (!isConfigured || !user || !instanceName) return;
     try {
-      const data = await callServer(`/status?userId=${user.id}`);
+      const data = await evoFetch(`/instance/connectionState/${instanceName}`);
       setServerStatus("online");
-      if (data.qr) setQrCode(data.qr);
+      // Evolution API: { instance: { state: "open" | "close" | "connecting" } }
+      const state = data?.instance?.state || data?.state;
 
-      if (data.connected && session?.status !== "connected") {
+      if (state === "open" && session?.status !== "connected") {
+        // pega o número
+        let phone: string | null = null;
+        try {
+          const inst = await evoFetch(`/instance/fetchInstances?instanceName=${instanceName}`);
+          const list = Array.isArray(inst) ? inst : [inst];
+          phone = list[0]?.instance?.owner?.split("@")[0] || list[0]?.owner?.split("@")[0] || null;
+        } catch { /* ignore */ }
+
         let sid = session?.id;
         if (!sid) {
           const { data: created } = await supabase.from("whatsapp_sessions").insert({
-            user_id: user.id, status: "connected", phone_number: data.phone || null, connected_at: new Date().toISOString(),
+            user_id: user.id, status: "connected", phone_number: phone, connected_at: new Date().toISOString(),
           }).select().single();
           sid = created?.id;
         } else {
           await supabase.from("whatsapp_sessions").update({
-            status: "connected", phone_number: data.phone || null, connected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+            status: "connected", phone_number: phone, connected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
           }).eq("id", sid);
         }
         await supabase.from("notifications").insert({
           user_id: user.id, title: "WhatsApp Conectado",
-          description: `Número ${data.phone || ""} conectado com sucesso`, type: "success",
+          description: `Número ${phone || ""} conectado com sucesso`, type: "success",
         });
         setQrCode(null);
         await loadAll();
-      } else if (!data.connected && session?.status === "connected") {
+      } else if (state !== "open" && session?.status === "connected") {
         await supabase.from("whatsapp_sessions").update({ status: "disconnected", updated_at: new Date().toISOString() }).eq("id", session.id);
         await loadAll();
       }
-    } catch {
-      setServerStatus("offline");
+    } catch (e: any) {
+      // Se a instância não existe, status fica como "não criado" mas servidor pode estar online
+      if (String(e.message).includes("404") || String(e.message).toLowerCase().includes("not found") || String(e.message).toLowerCase().includes("does not exist")) {
+        setServerStatus("online");
+      } else {
+        setServerStatus("offline");
+      }
     }
-  }, [isConfigured, user, session, callServer, loadAll]);
+  }, [isConfigured, user, session, evoFetch, instanceName, loadAll]);
 
   useEffect(() => {
     if (!isConfigured) return;
     checkStatus();
-    pollRef.current = window.setInterval(checkStatus, 3000);
+    pollRef.current = window.setInterval(checkStatus, 4000);
     return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, [isConfigured, checkStatus]);
 
   const handleConnect = async () => {
-    if (!user) return;
+    if (!user || !instanceName) return;
     setLoading(true);
     try {
-      await callServer("/connect", "POST", { userId: user.id });
-      toast({ title: "Iniciando conexão...", description: "Aguarde o QR Code aparecer" });
+      // 1. Tenta criar a instância (se já existir, ignora)
+      try {
+        const created = await evoFetch("/instance/create", "POST", {
+          instanceName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+        });
+        // Algumas versões já retornam o QR aqui
+        const qr = created?.qrcode?.base64 || created?.qrcode?.code;
+        if (qr) setQrCode(qr);
+      } catch (e: any) {
+        // se já existir, segue
+        if (!String(e.message).toLowerCase().includes("already") && !String(e.message).toLowerCase().includes("exists")) {
+          // outro erro — mas tenta o connect mesmo assim
+          console.warn("create instance:", e.message);
+        }
+      }
+
+      // 2. Pede o QR Code
+      const conn = await evoFetch(`/instance/connect/${instanceName}`);
+      const qr = conn?.base64 || conn?.qrcode?.base64 || conn?.code || conn?.qrcode?.code;
+      if (qr) setQrCode(qr);
+
+      toast({ title: "QR Code gerado", description: "Escaneie com o WhatsApp do seu celular" });
       setTimeout(checkStatus, 1500);
     } catch (e: any) {
       toast({ title: "Erro ao conectar", description: e.message, variant: "destructive" });
@@ -104,12 +147,21 @@ const WhatsAppConnection = () => {
   };
 
   const handleDisconnect = async () => {
-    if (!session || !user) return;
-    try { await callServer("/disconnect", "POST", { userId: user.id }); } catch { /* ignore */ }
+    if (!session || !user || !instanceName) return;
+    try { await evoFetch(`/instance/logout/${instanceName}`, "DELETE"); } catch { /* ignore */ }
     await supabase.from("whatsapp_sessions").update({ status: "disconnected", updated_at: new Date().toISOString() }).eq("id", session.id);
     setQrCode(null);
     toast({ title: "WhatsApp desconectado" });
     await loadAll();
+  };
+
+  const renderQr = (qr: string) => {
+    if (qr.startsWith("data:image")) return <img src={qr} alt="QR Code" className="w-56 h-56" />;
+    if (qr.length > 200 && !qr.includes(" ")) {
+      // base64 puro
+      return <img src={`data:image/png;base64,${qr}`} alt="QR Code" className="w-56 h-56" />;
+    }
+    return <img src={`https://api.qrserver.com/v1/create-qr-code/?size=224x224&data=${encodeURIComponent(qr)}`} alt="QR Code" className="w-56 h-56" />;
   };
 
   return (
@@ -156,11 +208,7 @@ const WhatsAppConnection = () => {
                 <div className="py-4">
                   <p className="text-sm text-muted-foreground mb-3">Escaneie o QR Code com seu WhatsApp:</p>
                   <div className="inline-block p-4 bg-white rounded-xl">
-                    {qrCode.startsWith("data:image") ? (
-                      <img src={qrCode} alt="QR Code" className="w-56 h-56" />
-                    ) : (
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=224x224&data=${encodeURIComponent(qrCode)}`} alt="QR Code" className="w-56 h-56" />
-                    )}
+                    {renderQr(qrCode)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     WhatsApp → Configurações → Aparelhos conectados → Conectar aparelho
@@ -187,7 +235,7 @@ const WhatsAppConnection = () => {
                 ) : (
                   <Button variant="default" size="lg" onClick={handleConnect} disabled={loading || serverStatus === "offline"}>
                     {loading ? <RefreshCw className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-                    {loading ? "Conectando..." : "Conectar WhatsApp"}
+                    {loading ? "Gerando QR..." : "Conectar WhatsApp"}
                   </Button>
                 )}
               </div>
