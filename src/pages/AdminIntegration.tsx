@@ -9,6 +9,12 @@ import { Server, CheckCircle2, XCircle, RefreshCw, AlertCircle, Save } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+const normalizeServerUrl = (url: string) => {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 const AdminIntegration = () => {
   const { toast } = useToast();
   const [serverUrl, setServerUrl] = useState("");
@@ -40,7 +46,7 @@ const AdminIntegration = () => {
     setTesting(true);
     setServerInfo(null);
     try {
-      const cleanUrl = url.replace(/\/$/, "");
+      const cleanUrl = normalizeServerUrl(url);
       const res = await fetch(`${cleanUrl}/`, {
         headers: token ? { "apikey": token } : {},
       });
@@ -67,6 +73,7 @@ const AdminIntegration = () => {
       return;
     }
     setSaving(true);
+    const normalizedUrl = normalizeServerUrl(serverUrl);
     // upsert: try update first, if no row exists, insert
     const { data: existing } = await supabase
       .from("system_settings")
@@ -76,7 +83,7 @@ const AdminIntegration = () => {
 
     const payload = {
       key: "whatsapp_server",
-      value: { url: serverUrl.trim(), token: serverToken.trim(), provider: "evolution" },
+      value: { url: normalizedUrl, token: serverToken.trim(), provider: "evolution" },
       updated_at: new Date().toISOString(),
     };
 
@@ -90,7 +97,8 @@ const AdminIntegration = () => {
       return;
     }
     toast({ title: "✅ Servidor configurado", description: "Os usuários já podem escanear o QR Code" });
-    setSavedUrl(serverUrl.trim());
+    setServerUrl(normalizedUrl);
+    setSavedUrl(normalizedUrl);
     setSavedToken(serverToken.trim());
   };
 
