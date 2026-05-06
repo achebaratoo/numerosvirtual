@@ -8,6 +8,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+const normalizeServerUrl = (url: string) => {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
+const extractQrCode = (data: any): string | null => {
+  const candidates = [
+    data?.base64,
+    data?.code,
+    data?.qrcode,
+    data?.qr,
+    data?.qrcode?.base64,
+    data?.qrcode?.code,
+    data?.qrcode?.qr,
+    data?.instance?.qrcode,
+    data?.instance?.qrcode?.base64,
+    data?.instance?.qrcode?.code,
+  ];
+  const qr = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+  return qr ? qr.trim() : null;
+};
+
 const WhatsAppConnection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -37,7 +60,7 @@ const WhatsAppConnection = () => {
 
   const evoFetch = useCallback(async (path: string, method: string = "GET", body?: any) => {
     if (!serverConfig?.url) throw new Error("Servidor não configurado");
-    const cleanUrl = serverConfig.url.replace(/\/$/, "");
+    const cleanUrl = normalizeServerUrl(serverConfig.url);
     const res = await fetch(`${cleanUrl}${path}`, {
       method,
       headers: {
@@ -123,7 +146,7 @@ const WhatsAppConnection = () => {
           integration: "WHATSAPP-BAILEYS",
         });
         // Algumas versões já retornam o QR aqui
-        const qr = created?.qrcode?.base64 || created?.qrcode?.code;
+        const qr = extractQrCode(created);
         if (qr) setQrCode(qr);
       } catch (e: any) {
         // se já existir, segue
@@ -135,8 +158,11 @@ const WhatsAppConnection = () => {
 
       // 2. Pede o QR Code
       const conn = await evoFetch(`/instance/connect/${instanceName}`);
-      const qr = conn?.base64 || conn?.qrcode?.base64 || conn?.code || conn?.qrcode?.code;
-      if (qr) setQrCode(qr);
+      const qr = extractQrCode(conn);
+      if (!qr) {
+        throw new Error("A Evolution API respondeu, mas não enviou o QR Code. Confira se a instância está como Baileys e tente novamente.");
+      }
+      setQrCode(qr);
 
       toast({ title: "QR Code gerado", description: "Escaneie com o WhatsApp do seu celular" });
       setTimeout(checkStatus, 1500);
