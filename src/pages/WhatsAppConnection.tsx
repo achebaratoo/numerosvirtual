@@ -60,23 +60,16 @@ const WhatsAppConnection = () => {
 
   const evoFetch = useCallback(async (path: string, method: string = "GET", body?: any) => {
     if (!serverConfig?.url) throw new Error("Servidor não configurado");
-    const cleanUrl = normalizeServerUrl(serverConfig.url);
-    const res = await fetch(`${cleanUrl}${path}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        ...(serverConfig.token ? { "apikey": serverConfig.token } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
+    const { data: result, error } = await supabase.functions.invoke("evolution-proxy", {
+      body: { path, method, body },
     });
-    const text = await res.text();
-    let data: any = null;
-    try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
-    if (!res.ok) {
-      const msg = data?.response?.message || data?.message || `HTTP ${res.status}`;
+    if (error) throw new Error(error.message || "Erro ao chamar proxy");
+    if (!result?.ok) {
+      const data = result?.data;
+      const msg = data?.response?.message || data?.message || `HTTP ${result?.status || "?"}`;
       throw new Error(Array.isArray(msg) ? msg.join(", ") : String(msg));
     }
-    return data;
+    return result.data;
   }, [serverConfig]);
 
   const checkStatus = useCallback(async () => {
