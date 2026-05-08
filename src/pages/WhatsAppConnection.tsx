@@ -131,13 +131,22 @@ const WhatsAppConnection = () => {
     if (!user || !instanceName) return;
     setLoading(true);
     try {
-      // 1. Tenta criar a instância (se já existir, ignora)
-      try {
-        const created = await evoFetch("/instance/create", "POST", {
+      const createInstance = async () => {
+        return evoFetch("/instance/create", "POST", {
           instanceName,
           qrcode: true,
           integration: "WHATSAPP-BAILEYS",
         });
+      };
+
+      const connectInstance = async () => {
+        const conn = await evoFetch(`/instance/connect/${instanceName}`);
+        return extractQrCode(conn);
+      };
+
+      // 1. Tenta criar a instância (se já existir, ignora)
+      try {
+        const created = await createInstance();
         // Algumas versões já retornam o QR aqui
         const qr = extractQrCode(created);
         if (qr) setQrCode(qr);
@@ -150,10 +159,21 @@ const WhatsAppConnection = () => {
       }
 
       // 2. Pede o QR Code
-      const conn = await evoFetch(`/instance/connect/${instanceName}`);
-      const qr = extractQrCode(conn);
+      let qr = await connectInstance();
+
+      // Se a Evolution ficou com uma instância antiga travada, ela responde { count: 0 } e não manda QR.
+      // Nesse caso, remove a instância quebrada e cria uma sessão limpa automaticamente.
       if (!qr) {
-        throw new Error("A Evolution API respondeu, mas não enviou o QR Code. Confira se a instância está como Baileys e tente novamente.");
+        try { await evoFetch(`/instance/logout/${instanceName}`, "DELETE"); } catch { /* ignore */ }
+        try { await evoFetch(`/instance/delete/${instanceName}`, "DELETE"); } catch { /* ignore */ }
+        await new Promise((resolve) => window.setTimeout(resolve, 1200));
+
+        const recreated = await createInstance();
+        qr = extractQrCode(recreated) || await connectInstance();
+      }
+
+      if (!qr) {
+        throw new Error("A Evolution API está online, mas retornou sem QR Code. A instância foi recriada; tente clicar novamente em alguns segundos.");
       }
       setQrCode(qr);
 
